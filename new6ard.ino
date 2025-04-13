@@ -5,15 +5,10 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+int otonomMod = 1;
 
-// Otonom mod seçimi
-int otonomMod = 1; // 1: Çoklu sensör modu, 2: Üst-Ön sensör modu
-
-// Dahili zaman tutma değişkenleri
 unsigned long dahiliZamanBaslangic = 0;
 bool dahiliZamanAyarlandi = false;
-
-// Yeni mesafe sensörleri tanımlamaları
 const int SAG_ON_TRIG_PIN = 28;
 const int SAG_ON_ECHO_PIN = 29;
 const int SOL_ON_TRIG_PIN = 22;
@@ -22,30 +17,25 @@ const int SAG_YAN_TRIG_PIN = 24;
 const int SAG_YAN_ECHO_PIN = 25;
 const int SOL_YAN_TRIG_PIN = 26;
 const int SOL_YAN_ECHO_PIN = 27;
-
-// Üst mesafe sensörü tanımlamaları
 const int UST_TRIG_PIN = 32;
 const int UST_ECHO_PIN = 33;
 long ustMesafe = 0;
-const int UST_GUVENLI_MESAFE = 45; // 45 cm güvenli mesafe (tavan/masa için)
+const int UST_GUVENLI_MESAFE = 45;
 
-// Yeni mesafe değişkenleri
 long sagOnMesafe = 0;
 long solOnMesafe = 0;
 long sagYanMesafe = 0;
 long solYanMesafe = 0;
-const int COKLU_SENSOR_GUVENLI_MESAFE = 25; // 25 cm güvenli mesafe (çoklu sensör modu için)
+const int COKLU_SENSOR_GUVENLI_MESAFE = 25;
 
-// BME280 Sensör Tanımlaması
 Adafruit_BME280 bme;
 float bmeBasinc = 0;
 float bmeSicaklik = 0;
 float bmeNem = 0;
 unsigned long sonBMEGostermeZamani = 0;
-const unsigned long BME_GOSTERME_SURESI = 10000; // 10 saniye
+const unsigned long BME_GOSTERME_SURESI = 10000;
 bool bmeEkranGoster = false;
 
-// Motor Sürücü Pinleri (L298N)
 const int ENA = 5;
 const int ENB = 6;
 const int IN1 = 7;
@@ -53,121 +43,85 @@ const int IN2 = 8;
 const int IN3 = 9;
 const int IN4 = 10;
 
-// Mesafe Sensörü Pinleri
-const int ON_TRIG_PIN = 30; // Öndeki sensör için TRIG pini
-const int ON_ECHO_PIN = 31; // Öndeki sensör için ECHO pini
-const int GUVENLI_MESAFE = 15; // 15 cm güvenli mesafe (kullanıcı isteği)
-
-// Buzzer Pin
+const int ON_TRIG_PIN = 30;
+const int ON_ECHO_PIN = 31;
+const int GUVENLI_MESAFE = 15;
 const int BUZZER_PIN = 11;
-
-// Vakum Motoru Röle Pini
 const int VAKUM_ROLE = 4;
-
-// DHT11 Sıcaklık ve Nem Sensörü
 const int DHT_PIN = 2;
 DHT dht(DHT_PIN, DHT11);
-
-// MQ2 Gaz Sensörü
 const int MQ2_PIN = A0;
-
-// PIR Hareket Sensörü
 const int PIR_PIN = 3;
-
-// Ses Sensörü
 const int SES_SENSOR_PIN = A1;
 
-// LCD I2C Ekran
-LiquidCrystal_I2C lcd(0x27, 16, 2); // I2C adresi 0x27, 16 sütun, 2 satır
-
-// DFPlayer Mini için Hardware Serial kullanımı
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 DFRobotDFPlayerMini dfPlayer;
-
-// DFPlayer BUSY pini
 const int DFPLAYER_BUSY_PIN = 12;
-
-// Mod değişkenleri
 bool otomatikMod = false;
 bool manuelMod = false;
 bool vakumDurumu = false;
 bool muzikCaliyor = false;
 int currentSong = 1;
-int totalSongs = 5; // SD karttaki toplam şarkı sayısı
+int totalSongs = 5;
 
-// Manuel mod için yön değişkenleri
-char yon = 'S'; // Durma
+char yon = 'S';
 
-// Mesafe ölçüm değişkenleri
-long onMesafe; // Tek ön mesafe sensörü
-const int SUPURGE_GUVENLI_MESAFE = 10; // Süpürge için 10 cm güvenli mesafe
+long onMesafe;
+const int SUPURGE_GUVENLI_MESAFE = 10;
 
-// Motor hızı
-int motorHizi = 200;            // Normal hız
-int yavasMotorHizi = 140;       // Otonom modda yavaş hız
-int donmeMotorHizi = 150;       // Otonom modda dönüş hızı (daha yüksek hız)
+int motorHizi = 200;
+int yavasMotorHizi = 140;
+int donmeMotorHizi = 150;
 
-// Sensör değerleri
 float sicaklik = 0.0;
 float nem = 0.0;
 int gazSeviyesi = 0;
 bool hareketAlgilandi = false;
 int sesSeviyesi = 0;
 
-// İstatistik değişkenleri
 unsigned long calismaBaslangicZamani = 0;
-unsigned long toplamCalismaSuresi = 0; // Milisaniye cinsinden
-float toplamGidilenMesafe = 0.0;       // Metre cinsinden
+unsigned long toplamCalismaSuresi = 0;
+float toplamGidilenMesafe = 0.0;
 int otomatikModGecis = 0;
 bool istatistikGuncellemesiGerekli = false;
 
-// Zamanlama değişkenleri
 unsigned long sonVeriGondermeZamani = 0;
 unsigned long sonSensorOkumaZamani = 0;
 unsigned long sonMesafeOlcmeZamani = 0;
 unsigned long sonIstatistikKaydetmeZamani = 0;
-unsigned long sonHareketZamani = 0;        // Son hareket zamanı
-bool hareketEdiyorMu = false;              // Hareket ediyor mu?
-unsigned long hareketBaslangicZamani = 0;  // Hareket başlangıç zamanı
+unsigned long sonHareketZamani = 0;
+bool hareketEdiyorMu = false;
+unsigned long hareketBaslangicZamani = 0;
 
-// Otonom tarama değişkenleri
 bool taramaModu = false;
 unsigned long taramaBaslangic = 0;
-int enIyiYon = 0; // Derece cinsinden en iyi yön (0-360)
-int enIyiMesafe = 0; // En iyi yöndeki mesafe
+int enIyiYon = 0;
+int enIyiMesafe = 0;
 
-// Tarama için değişkenler
 bool taramaIcinDonusYapiliyor = false;
-int taramaDereceleri[8] = {0}; // 8 farklı yön için mesafe ölçümü (0, 45, 90, 135, 180, 225, 270, 315 derece)
-int taramaMesafeleri[8] = {0}; // Her yöndeki ölçülen mesafe
-int taramaAdimi = 0; // Mevcut tarama adımı
-
-// Temizlik planlama değişkenleri
+int taramaDereceleri[8] = {0};
+int taramaMesafeleri[8] = {0};
+int taramaAdimi = 0;
 bool zamanliTemizlikAktif = false;
 int planliSaat = 0;
 int planliDakika = 0;
-int planliSure = 30; // dakika cinsinden
+int planliSure = 30;
 
-// EEPROM kullanımı
 #include <EEPROM.h>
 const int EEPROM_ADRES_TOPLAM_SURE = 0;
 const int EEPROM_ADRES_MESAFE = 4;
 const int EEPROM_ADRES_GECIS = 8;
 
-// Mesafe sensörü ölçüm geçmişi
 const int OLCUM_GECMISI_SAYISI = 5;
 long onMesafeGecmisi[OLCUM_GECMISI_SAYISI] = {0};
 long ustMesafeGecmisi[OLCUM_GECMISI_SAYISI] = {0};
 int olcumGecmisiIndeksi = 0;
 
-// Debug değişkenleri
 unsigned long sonDebugMesajZamani = 0;
-const unsigned long DEBUG_MESAJ_ARALIK = 10000; // Debug mesajlarını 10 saniyede bir göster (azaltıldı)
-
-// DFPlayer ve sensör test değişkenleri
+const unsigned long DEBUG_MESAJ_ARALIK = 10000;
 unsigned long sonTestZamani = 0;
 
 void setup() {
-  // Motor pinlerini çıkış olarak ayarla
   pinMode(ENA, OUTPUT);
   pinMode(ENB, OUTPUT);
   pinMode(IN1, OUTPUT);
@@ -175,15 +129,12 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   
-  // Ultrasonik sensör pinlerini ayarla
   pinMode(ON_TRIG_PIN, OUTPUT);
   pinMode(ON_ECHO_PIN, INPUT);
   
-  // Üst mesafe sensörü pinlerini ayarla
   pinMode(UST_TRIG_PIN, OUTPUT);
   pinMode(UST_ECHO_PIN, INPUT);
   
-  // Yeni mesafe sensörlerini ayarla
   pinMode(SAG_ON_TRIG_PIN, OUTPUT);
   pinMode(SAG_ON_ECHO_PIN, INPUT);
   pinMode(SOL_ON_TRIG_PIN, OUTPUT);
@@ -193,24 +144,17 @@ void setup() {
   pinMode(SOL_YAN_TRIG_PIN, OUTPUT);
   pinMode(SOL_YAN_ECHO_PIN, INPUT);
   
-  // Buzzer pinini ayarla
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW); // Başlangıçta kapalı
+  digitalWrite(BUZZER_PIN, LOW);
   
-  // Vakum motoru röle pinini ayarla
   pinMode(VAKUM_ROLE, OUTPUT);
-  digitalWrite(VAKUM_ROLE, HIGH); // Başlangıçta kapalı (ters lojik)
-  
-  // PIR sensör pini
+  digitalWrite(VAKUM_ROLE, HIGH);
   pinMode(PIR_PIN, INPUT);
   
-  // DFPlayer BUSY pini
   pinMode(DFPLAYER_BUSY_PIN, INPUT);
   
-  // DHT11 sensörünü başlat
   dht.begin();
   
-  // LCD ekranı başlat
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
@@ -218,16 +162,13 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print("Baslatiliyor...");
   
-  // Ana seri port - ESP32 iletişimi için
   Serial.begin(115200);
   
-  // DFPlayer Mini için Hardware Serial kullanımı (BUSY pin olmadan da çalışacak)
   Serial1.begin(9600);
   
-  // BME280 sensörünü başlat
   Wire.begin();
   
-  if (!bme.begin(0x76)) { // BME280'in I2C adresi genellikle 0x76 veya 0x77'dir
+  if (!bme.begin(0x76)) {
     lcd.setCursor(0, 1);
     lcd.print("BME280 Hata!    ");
     delay(1000);
@@ -237,28 +178,24 @@ void setup() {
     delay(1000);
   }
   
-  // DFPlayer başlatma (BUSY pin bağlı olmadan da çalışacak)
-  delay(1000); // İletişim başlaması için biraz bekle
+  delay(1000);
   if (dfPlayer.begin(Serial1)) {
     lcd.setCursor(0, 1);
     lcd.print("DFPlayer OK     ");
     Serial.println("DFPlayer başarıyla başlatıldı");
     
-    // Başlangıç ayarları
-    dfPlayer.reset(); // Cihazı resetle
+    dfPlayer.reset();
     delay(1000);
     dfPlayer.setTimeOut(500);
-    dfPlayer.volume(15);  // 0-30 arası
+    dfPlayer.volume(15);
     dfPlayer.EQ(DFPLAYER_EQ_NORMAL);
     dfPlayer.outputDevice(DFPLAYER_DEVICE_SD);
     
-    // SD karttaki toplam şarkı sayısını al
     totalSongs = dfPlayer.readFileCounts();
     Serial.print("SD karttaki toplam şarkı sayısı: ");
     Serial.println(totalSongs);
     
-    // Test için bir ses çal
-    dfPlayer.play(1); // 01.mp3 dosyasını çal
+    dfPlayer.play(1);
     Serial.println("Test sesi çalınıyor...");
   } else {
     lcd.setCursor(0, 1);
@@ -266,16 +203,13 @@ void setup() {
     Serial.println("DFPlayer başlatılamadı!");
   }
   
-  // Dahili zaman başlatma
   dahiliZamanBaslangic = millis();
-  setTime(0, 0, 0, 1, 1, 2023); // 1 Ocak 2023 saat 00:00:00 olarak başlat
+  setTime(0, 0, 0, 1, 1, 2023);
   
-  // İstatistikleri EEPROM'dan yükle
   EEPROM.get(EEPROM_ADRES_TOPLAM_SURE, toplamCalismaSuresi);
   EEPROM.get(EEPROM_ADRES_MESAFE, toplamGidilenMesafe);
   EEPROM.get(EEPROM_ADRES_GECIS, otomatikModGecis);
   
-  // Motorları durdur
   durdur();
   
   delay(2000);
@@ -283,28 +217,23 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Mod: Hazir");
   
-  // İlk sensör okumaları
   onMesafe = mesafeOlc(ON_TRIG_PIN, ON_ECHO_PIN);
   ustMesafe = mesafeOlc(UST_TRIG_PIN, UST_ECHO_PIN);
   
-  // Çoklu sensör okumaları
   sagOnMesafe = mesafeOlc(SAG_ON_TRIG_PIN, SAG_ON_ECHO_PIN);
   solOnMesafe = mesafeOlc(SOL_ON_TRIG_PIN, SOL_ON_ECHO_PIN);
   sagYanMesafe = mesafeOlc(SAG_YAN_TRIG_PIN, SAG_YAN_ECHO_PIN);
   solYanMesafe = mesafeOlc(SOL_YAN_TRIG_PIN, SOL_YAN_ECHO_PIN);
   
-  // Başlangıç mesajı
   Serial.println("Arduino Mega hazır, komut bekleniyor!");
 }
 
 void loop() {
-  // Dahili zamanı güncelle (millis() tabanlı)
   if (millis() - dahiliZamanBaslangic >= 1000) {
-    adjustTime(1); // Her 1 saniyede bir zamanı 1 saniye artır
+    adjustTime(1);
     dahiliZamanBaslangic = millis();
   }
 
-  // Test komutlarını işle
   if (Serial.available() > 0) {
     String komut = Serial.readStringUntil('\n');
     komut.trim();
@@ -320,7 +249,6 @@ void loop() {
       sensorKontrol();
       sonTestZamani = millis();
     }
-    // Otonom mod değişimi komutları
     else if (komut == "OTONOM_MOD_1") {
       otonomMod = 1;
       lcd.clear();
@@ -364,7 +292,6 @@ void loop() {
     }
   }
   
-  // Zamanı kontrol et ve gerekirse planlı temizliği başlat
   if (zamanliTemizlikAktif) {
     if (hour() == planliSaat && minute() == planliDakika && !otomatikMod && !manuelMod && second() < 60) {
       otomatikMod = true;
@@ -377,15 +304,12 @@ void loop() {
       lcd.print("Temizlik");
       Serial.println("PLANLI_TEMIZLIK_BASLADI");
       
-      // Planlı süre kadar çalışacak
       calismaBaslangicZamani = millis();
       
-      // İstatistik güncelleme
       otomatikModGecis++;
       istatistikGuncellemesiGerekli = true;
     }
     
-    // Planlı süre tamamlandıysa otomatiği kapat
     if (otomatikMod && millis() - calismaBaslangicZamani > planliSure * 60000) {
       otomatikMod = false;
       vakumKapat();
@@ -397,31 +321,26 @@ void loop() {
       lcd.print("Plan tamamlandi");
       Serial.println("PLANLI_TEMIZLIK_TAMAMLANDI");
       
-      // Çalışma süresini güncelle
       long calismaSuresi = (millis() - calismaBaslangicZamani);
       toplamCalismaSuresi += calismaSuresi;
       istatistikGuncellemesiGerekli = true;
     }
   }
   
-  // Sensörleri periyodik olarak oku
   if (millis() - sonSensorOkumaZamani > 2000) {
     sensorleriOku();
     sonSensorOkumaZamani = millis();
   }
   
-  // Mesafe ölçümü periyodik olarak yap - TÜM MESAFE SENSÖRLERİ İÇİN
   if (millis() - sonMesafeOlcmeZamani > 200) {
     onMesafe = mesafeOlc(ON_TRIG_PIN, ON_ECHO_PIN);
     ustMesafe = mesafeOlc(UST_TRIG_PIN, UST_ECHO_PIN);
     
-    // Çoklu sensör okumaları
     sagOnMesafe = mesafeOlc(SAG_ON_TRIG_PIN, SAG_ON_ECHO_PIN);
     solOnMesafe = mesafeOlc(SOL_ON_TRIG_PIN, SOL_ON_ECHO_PIN);
     sagYanMesafe = mesafeOlc(SAG_YAN_TRIG_PIN, SAG_YAN_ECHO_PIN);
     solYanMesafe = mesafeOlc(SOL_YAN_TRIG_PIN, SOL_YAN_ECHO_PIN);
     
-    // LCD ekranda mesafeyi göster
     if (!bmeEkranGoster) {
       lcd.setCursor(0, 1);
       if (otonomMod == 1) {
@@ -442,28 +361,23 @@ void loop() {
     sonMesafeOlcmeZamani = millis();
   }
   
-  // İstatistikleri periyodik olarak kaydet (her 1 dakikada bir)
   if (istatistikGuncellemesiGerekli && millis() - sonIstatistikKaydetmeZamani > 60000) {
     istatistikleriKaydet();
     istatistikGuncellemesiGerekli = false;
     sonIstatistikKaydetmeZamani = millis();
   }
   
-  // Sensör verilerini periyodik olarak gönder
   if (millis() - sonVeriGondermeZamani > 500) {
     sensorVerileriniGonder();
     sonVeriGondermeZamani = millis();
   }
   
-  // BME280 verilerini periyodik olarak LCD'de göster
   if (millis() - sonBMEGostermeZamani > BME_GOSTERME_SURESI) {
-    // BME280 değerlerini oku
     bmeSicaklik = bme.readTemperature();
     bmeNem = bme.readHumidity();
-    bmeBasinc = bme.readPressure() / 100.0F; // hPa cinsinden
+    bmeBasinc = bme.readPressure() / 100.0F;
     
-    // Ekranda BME280 değerlerini göster
-    if (!otomatikMod && !manuelMod) { // Robot beklemede iken
+    if (!otomatikMod && !manuelMod) {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("S:");
@@ -478,7 +392,6 @@ void loop() {
       
       bmeEkranGoster = true;
       
-      // 3 saniye sonra normal ekrana dön
       delay(3000);
       
       lcd.clear();
@@ -490,7 +403,6 @@ void loop() {
     sonBMEGostermeZamani = millis();
   }
   
-  // Debug mesajları
   if (millis() - sonDebugMesajZamani > DEBUG_MESAJ_ARALIK) {
     Serial.print("--- DEBUG: Ön Mesafe: " + String(onMesafe) + " cm, ");
     if (otonomMod == 1) {
@@ -502,31 +414,23 @@ void loop() {
     sonDebugMesajZamani = millis();
   }
   
-  // DFPlayer BUSY pin kontrolü (BUSY pin bağlı değilse tahmini kontrol)
   if (digitalRead(DFPLAYER_BUSY_PIN) == LOW) {
     muzikCaliyor = true;
   } else {
-    // BUSY pin bağlı değilse ya da çalışmıyorsa durumu tahmin et
     static unsigned long sonMuzikKontrolu = 0;
     static bool tahminCalisiyor = false;
     
     if (muzikCaliyor && millis() - sonMuzikKontrolu > 3000) {
-      // Uzun süre çalıyor durumundaysa kontrolü yap
-      // BUSY pin bağlı olmadığı için tahmini değer kullan
       sonMuzikKontrolu = millis();
-      tahminCalisiyor = true; 
+      tahminCalisiyor = true;
     }
   }
   
-  // Mod durumuna göre işlem yap
   if (otomatikMod) {
-    // Tarama modunda ise tarama yap, değilse normal otonom modu çalıştır
     if (taramaModu) {
       otonomTaramaYap();
     } else {
-      // Otomatik modda 3 saniye hareketsiz kalırsa durdur
       if (hareketEdiyorMu) {
-        // Son hareketten bu yana 3 saniye geçtiyse motoru durdur
         if (millis() - sonHareketZamani > 3000) {
           durdur();
           hareketEdiyorMu = false;
@@ -536,10 +440,8 @@ void loop() {
           otomatikModCalistir();
         }
       } else {
-        // Yeniden hareket etmeyi dene
         otomatikModCalistir();
         
-        // Hareket başladığını işaretle
         if (yon != 'S') {
           hareketEdiyorMu = true;
           sonHareketZamani = millis();
@@ -566,20 +468,16 @@ void komutIsle(String komut) {
     lcd.print("Mod: Otomatik");
     Serial.println("Otomatik mod acildi");
     
-    // İstatistik güncelleme
     calismaBaslangicZamani = millis();
     otomatikModGecis++;
     istatistikGuncellemesiGerekli = true;
     
-    // Hareket durumunu sıfırla
     hareketEdiyorMu = true;
     sonHareketZamani = millis();
     
-    // Tarama modunu başlangıçta kapalı yap
     taramaModu = false;
   } 
   else if (komut == "OTOMATIK_KAPAT") {
-    // Çalışma süresini güncelle
     if (otomatikMod) {
       long calismaSuresi = (millis() - calismaBaslangicZamani);
       toplamCalismaSuresi += calismaSuresi;
@@ -594,7 +492,6 @@ void komutIsle(String komut) {
     lcd.print("Mod: Hazir");
     Serial.println("Otomatik mod kapatildi");
     
-    // Tarama modunu kapat
     taramaModu = false;
   } 
   else if (komut == "MANUEL_AC") {
@@ -606,11 +503,9 @@ void komutIsle(String komut) {
     lcd.print("Mod: Manuel");
     Serial.println("Manuel mod acildi");
     
-    // İstatistik için
     calismaBaslangicZamani = millis();
   } 
   else if (komut == "MANUEL_KAPAT") {
-    // Çalışma süresini güncelle
     if (manuelMod) {
       long calismaSuresi = (millis() - calismaBaslangicZamani);
       toplamCalismaSuresi += calismaSuresi;
@@ -634,22 +529,21 @@ void komutIsle(String komut) {
   else if (komut.startsWith("YON:")) {
     yon = komut.charAt(4);
     
-    // Manuel modda yön değişikliğini hemen uygula
     if (manuelMod) {
       switch (yon) {
-        case 'F': // İleri (Forward)
+        case 'F':
           ileriGit(motorHizi);
           break;
-        case 'B': // Geri (Backward)
+        case 'B':
           geriGit(motorHizi);
           break;
-        case 'L': // Sol (Left)
+        case 'L':
           solaDon(motorHizi);
           break;
-        case 'R': // Sağ (Right)
+        case 'R':
           sagaDon(motorHizi);
           break;
-        case 'S': // Dur (Stop)
+        case 'S':
         default:
           durdur();
           break;
@@ -659,7 +553,6 @@ void komutIsle(String komut) {
   else if (komut.startsWith("HIZ:")) {
     motorHizi = komut.substring(4).toInt();
   }
-  // DFPlayer komutları
   else if (komut == "MUZIK_PLAY") {
     muzikCal();
   }
@@ -680,10 +573,7 @@ void komutIsle(String komut) {
     int track = komut.substring(12).toInt();
     sarkiSec(track);
   }
-  // Temizlik planlama komutları
   else if (komut.startsWith("PLANLI_TEMIZLIK_AYARLA:")) {
-    // Format: PLANLI_TEMIZLIK_AYARLA:HH:MM:DD
-    // HH: Saat, MM: Dakika, DD: Süre (dakika)
     String planBilgisi = komut.substring(23);
     
     int ilkNoktali = planBilgisi.indexOf(':');
@@ -697,7 +587,6 @@ void komutIsle(String komut) {
       zamanliTemizlikAktif = true;
       Serial.println("PLANLI_TEMIZLIK_AYARLANDI");
       
-      // LCD'de göster
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Plan: ");
@@ -738,9 +627,7 @@ void komutIsle(String komut) {
     istatistikleriKaydet();
     Serial.println("ISTATISTIKLER_SIFIRLANDI");
   }
-  // Zaman ayarlama komutu
   else if (komut.startsWith("ZAMAN_AYARLA:")) {
-    // Format: ZAMAN_AYARLA:HH:MM:SS
     String zamanBilgisi = komut.substring(13);
     
     int ilkNoktali = zamanBilgisi.indexOf(':');
@@ -757,7 +644,6 @@ void komutIsle(String komut) {
       
       Serial.println("ZAMAN_AYARLANDI");
       
-      // LCD'de göster
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Zaman ayarlandi");
@@ -776,9 +662,7 @@ void komutIsle(String komut) {
       lcd.print("Mod: Hazir");
     }
   }
-  // Tarih ayarlama komutu
   else if (komut.startsWith("TARIH_AYARLA:")) {
-    // Format: TARIH_AYARLA:GG:AA:YYYY
     String tarihBilgisi = komut.substring(13);
     
     int ilkNoktali = tarihBilgisi.indexOf(':');
@@ -793,7 +677,6 @@ void komutIsle(String komut) {
       
       Serial.println("TARIH_AYARLANDI");
       
-      // LCD'de göster
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Tarih ayarlandi");
@@ -813,19 +696,15 @@ void komutIsle(String komut) {
   }
 }
 
-// DFPlayer Debug Fonksiyonu
 void dfPlayerDebug() {
   Serial.println("DFPlayer durumu kontrol ediliyor...");
   
-  // BUSY pin durumunu kontrol et
   Serial.print("BUSY pin durumu: ");
   Serial.println(digitalRead(DFPLAYER_BUSY_PIN) == LOW ? "Çalışıyor" : "Beklemede");
   
-  // SD kart durumunu kontrol et
   Serial.print("SD kart kontrolü: ");
   bool sdOk = false;
   
-  // DFPlayer SD kart kontrolü
   uint8_t tip = dfPlayer.readType();
   uint16_t deger = dfPlayer.read();
   
@@ -833,17 +712,14 @@ void dfPlayerDebug() {
     sdOk = true;
     Serial.println("Bağlı");
     
-    // SD kart içeriğini kontrol et
     int dosyaSayisi = dfPlayer.readFileCounts();
     Serial.print("Toplam dosya sayısı: ");
     Serial.println(dosyaSayisi);
     
-    // Ses seviyesini kontrol et
     int sesSeviyesi = dfPlayer.readVolume();
     Serial.print("Ses seviyesi: ");
     Serial.println(sesSeviyesi);
     
-    // Mevcut şarkıyı kontrol et
     int suan = dfPlayer.readCurrentFileNumber();
     Serial.print("Çalan dosya: ");
     Serial.println(suan);
@@ -851,7 +727,6 @@ void dfPlayerDebug() {
     Serial.println("Yanıt vermiyor!");
     Serial.println("DFPlayer'ı yeniden başlatmayı deneyin...");
     
-    // DFPlayer'ı yeniden başlat
     dfPlayer.reset();
     delay(1000);
     
@@ -864,11 +739,9 @@ void dfPlayerDebug() {
   }
 }
 
-// Sensör Kontrol Fonksiyonu
 void sensorKontrol() {
   Serial.println("\n----- SENSÖR DURUMU -----");
   
-  // DHT11 Sıcaklık/Nem sensörü kontrolü
   Serial.print("DHT11: ");
   float t = dht.readTemperature();
   float h = dht.readHumidity();
@@ -884,7 +757,6 @@ void sensorKontrol() {
     Serial.println(h);
   }
   
-  // MQ2 Gaz sensörü kontrolü
   int gazDegeri = analogRead(MQ2_PIN);
   Serial.print("MQ2 Gaz sensörü (A0): ");
   Serial.print(gazDegeri);
@@ -894,18 +766,15 @@ void sensorKontrol() {
     Serial.println(" - Normal");
   }
   
-  // PIR Hareket sensörü kontrolü
   int pirDurum = digitalRead(PIR_PIN);
   Serial.print("PIR Hareket sensörü (PIN 3): ");
   Serial.println(pirDurum == HIGH ? "Hareket Algılandı" : "Hareket Yok");
   
-  // Ultrasonik mesafe sensörü kontrolü
   long onMesafe = mesafeOlc(ON_TRIG_PIN, ON_ECHO_PIN);
   Serial.print("Ön Mesafe sensörü: ");
   Serial.print(onMesafe);
   Serial.println(" cm");
   
-  // Ek mesafe sensörleri
   Serial.print("Üst Mesafe sensörü: ");
   Serial.print(mesafeOlc(UST_TRIG_PIN, UST_ECHO_PIN));
   Serial.println(" cm");
@@ -926,12 +795,10 @@ void sensorKontrol() {
   Serial.print(mesafeOlc(SOL_YAN_TRIG_PIN, SOL_YAN_ECHO_PIN));
   Serial.println(" cm");
   
-  // Ses sensörü kontrolü
   int sesDegeri = analogRead(SES_SENSOR_PIN);
   Serial.print("Ses sensörü (A1): ");
   Serial.println(sesDegeri);
   
-  // BME280 sensörü kontrolü
   Serial.print("BME280 sensörü (I2C): ");
   if (isnan(bme.readTemperature())) {
     Serial.println("HATA - Veri okunamıyor!");
@@ -950,94 +817,68 @@ void sensorKontrol() {
   Serial.println("--------------------------\n");
 }
 
-// İki Otonom Mod İmplementasyonu
 void otomatikModCalistir() {
-  // Motor hızını ayarla - Yavaş motorla başla
   int currentHiz = yavasMotorHizi;
   
-  // Hangi otonom modun seçildiğine göre işlem yap
   if (otonomMod == 1) {
-    // MOD 1: Çoklu sensör modu (sağ ön, sol ön, sağ yan, sol yan)
-    
-    // Sağ ön ve sol ön sensörlerini kontrol et
     if (sagOnMesafe <= COKLU_SENSOR_GUVENLI_MESAFE || solOnMesafe <= COKLU_SENSOR_GUVENLI_MESAFE) {
-      // Ön sensörlerden biri engel algıladı, dur ve geri git
       durdur();
       digitalWrite(BUZZER_PIN, HIGH);
       delay(300);
       digitalWrite(BUZZER_PIN, LOW);
       
-      // Biraz geri git
       geriGit(currentHiz);
-      delay(1000); // 1 saniye geri git
+      delay(1000);
       durdur();
       delay(300);
       
-      // Tarama modunu başlat
       taramaModu = true;
       taramaBaslangic = millis();
       
-      return; // Fonksiyondan çık, tarama modu loop'ta işlenecek
+      return;
     }
     
-    // Hiçbir engel yoksa ileri git
     ileriGit(currentHiz);
     
   } else {
-    // MOD 2: Üst ve ön sensör modu
-    
-    // Ön sensör 15 cm, üst sensör 45 cm eşiğindeyse engel algılanması gerekiyor
     if (onMesafe <= GUVENLI_MESAFE || ustMesafe <= UST_GUVENLI_MESAFE) {
-      // Ön veya üst sensör engel algıladı, dur ve geri git
       durdur();
       digitalWrite(BUZZER_PIN, HIGH);
       delay(300);
       digitalWrite(BUZZER_PIN, LOW);
       
-      // Biraz geri git
       geriGit(currentHiz);
-      delay(1000); // 1 saniye geri git
+      delay(1000);
       durdur();
       delay(300);
       
-      // Tarama modunu başlat
       taramaModu = true;
       taramaBaslangic = millis();
       
-      return; // Fonksiyondan çık, tarama modu loop'ta işlenecek
+      return;
     }
     
-    // Hiçbir engel yoksa ileri git
     ileriGit(currentHiz);
   }
   
-  // İstatistik için mesafe hesaplama (yaklaşık)
   toplamGidilenMesafe += 0.0002;
   istatistikGuncellemesiGerekli = true;
   
-  // Hareket ettiğini belirt ve zaman damgasını güncelle
   sonHareketZamani = millis();
   hareketEdiyorMu = true;
 }
 
-// İyileştirilmiş tarama fonksiyonu - Dönüş problemi çözüldü
 void otonomTaramaYap() {
   static unsigned long sonDonusZamani = 0;
   static int donusSuresi = 0;
   
-  // Tarama başlangıcında değişkenleri sıfırla
   if (millis() - taramaBaslangic < 100) {
-    // Tarama başlangıcında değerleri sıfırla
-    
-    // Tüm tarama değişkenlerini sıfırla
     taramaAdimi = 0;
     enIyiYon = 0;
     enIyiMesafe = 0;
     
-    // İlk adım için dönüş başlat
     sonDonusZamani = millis();
     
-    // Sesli uyarı
     digitalWrite(BUZZER_PIN, HIGH);
     delay(100);
     digitalWrite(BUZZER_PIN, LOW);
@@ -1046,38 +887,26 @@ void otonomTaramaYap() {
     lcd.print("Tarama yapiliyor");
   }
   
-  // Tüm 8 yöne sırayla bak (0-360 derece, 45'er derece aralıklarla)
   if (taramaAdimi < 8) {
-    // Her yöne 45 derece dönüş yaparak bakar (8 x 45 = 360 derece)
-    
-    // Dönüş sürecindeyiz
     if (millis() - sonDonusZamani < 500) {
-      // Her adımda sadece sağa dön (daha tutarlı davranış için)
       sagaDon(donmeMotorHizi);
     } 
-    // Dönüş tamamlandı, durup ölçüm yap
     else if (millis() - sonDonusZamani < 1000) {
       durdur();
       
-      // Durup ölçüm yap
       if (millis() - sonDonusZamani >= 700) {
-        // Mesafeyi ölç ve kaydet
         long olculenMesafe;
         
-        // Hangi modda olduğuna göre ölçüm yap
         if (otonomMod == 1) {
-          // Mod 1: Ön sensörler ortalaması
           long sagOn = mesafeOlc(SAG_ON_TRIG_PIN, SAG_ON_ECHO_PIN);
           long solOn = mesafeOlc(SOL_ON_TRIG_PIN, SOL_ON_ECHO_PIN);
           olculenMesafe = (sagOn + solOn) / 2;
         } else {
-          // Mod 2: Ön sensör
           olculenMesafe = mesafeOlc(ON_TRIG_PIN, ON_ECHO_PIN);
         }
         
         taramaMesafeleri[taramaAdimi] = olculenMesafe;
         
-        // En iyi mesafeyi güncelle (güvenli mesafeden büyük olmalı)
         int guvenliMesafe = (otonomMod == 1) ? COKLU_SENSOR_GUVENLI_MESAFE : GUVENLI_MESAFE;
         if (olculenMesafe > enIyiMesafe && olculenMesafe > guvenliMesafe) {
           enIyiMesafe = olculenMesafe;
@@ -1085,28 +914,20 @@ void otonomTaramaYap() {
         }
       }
     }
-    // Bu adım tamamlandı, bir sonraki adıma geç
     else {
       taramaAdimi++;
       sonDonusZamani = millis();
     }
   }
-  // Tüm yönlere baktıktan sonra en iyi yöne dön
   else if (taramaAdimi == 8) {
-    // 8 adım tamamlandı, en iyi yöne dön
-    
-    // Seçilen moda göre güvenli mesafe eşiğini belirle
     int guvenliMesafe = (otonomMod == 1) ? COKLU_SENSOR_GUVENLI_MESAFE : GUVENLI_MESAFE;
     
-    // En iyi yön bulunamadıysa (tüm yönler güvenli mesafeden az) ileri yönü seç
     if (enIyiMesafe <= guvenliMesafe) {
-      // Tüm yönler kapalıysa biraz daha geri git ve tekrar taramayı dene
       geriGit(yavasMotorHizi);
-      delay(1000); // 1 saniye daha geri git
+      delay(1000);
       durdur();
       delay(300);
       
-      // Taramayı sıfırla
       taramaAdimi = 0;
       enIyiYon = 0;
       enIyiMesafe = 0;
@@ -1115,29 +936,22 @@ void otonomTaramaYap() {
       return;
     }
     
-    // En iyi yön belirlendi, ona dön
     taramaAdimi = 9;
     sonDonusZamani = millis();
-    // Her yön için 45 derece, enIyiYon adım sayısını belirtir
-    donusSuresi = 500 * enIyiYon; // Her adım için 500ms dönüş süresi
+    donusSuresi = 500 * enIyiYon;
   }
-  // En iyi yöne dönüyoruz
   else if (taramaAdimi == 9) {
     if (millis() - sonDonusZamani < donusSuresi) {
-      // En iyi yöne dönüş
       sagaDon(donmeMotorHizi);
     } else {
-      // Dönüş tamamlandı, taramayı bitir
       durdur();
       delay(300);
       
-      // Taramayı bitir ve normal moda geç
       taramaModu = false;
       
       lcd.setCursor(0, 1);
       lcd.print("Tarama tamam!   ");
       
-      // Sesli uyarı (iki kısa bip)
       digitalWrite(BUZZER_PIN, HIGH);
       delay(100);
       digitalWrite(BUZZER_PIN, LOW);
@@ -1146,40 +960,35 @@ void otonomTaramaYap() {
       delay(100);
       digitalWrite(BUZZER_PIN, LOW);
       
-      // Tarama sonrası ileri git
       ileriGit(yavasMotorHizi);
     }
   }
 }
 
 void manuelModCalistir() {
-  // Manuel mod aktif olduğunda her zaman belirli bir frekansta yön kontrolü yap
   static unsigned long sonYonGuncelleme = 0;
-  if (millis() - sonYonGuncelleme > 100) { // Her 100 ms'de bir yön güncelle
+  if (millis() - sonYonGuncelleme > 100) {
     switch (yon) {
-      case 'F': // İleri (Forward)
+      case 'F':
         ileriGit(motorHizi);
         
-        // Manuel modda da mesafe hesapla
-        // Motorun hızına göre katsayı belirle (motorHizi / 120)
         float hizKatsayi = motorHizi / 120.0;
         toplamGidilenMesafe += 0.0002 * hizKatsayi;
         istatistikGuncellemesiGerekli = true;
         break;
-      case 'B': // Geri (Backward)
+      case 'B':
         geriGit(motorHizi);
-        // Geri giderken de mesafe hesapla
         hizKatsayi = motorHizi / 120.0;
         toplamGidilenMesafe += 0.0002 * hizKatsayi;
         istatistikGuncellemesiGerekli = true;
         break;
-      case 'L': // Sol (Left)
+      case 'L':
         solaDon(motorHizi);
         break;
-      case 'R': // Sağ (Right)
+      case 'R':
         sagaDon(motorHizi);
         break;
-      case 'S': // Dur (Stop)
+      case 'S':
       default:
         durdur();
         break;
@@ -1195,14 +1004,13 @@ long mesafeOlc(int trigPin, int echoPin) {
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
   
-  long sure = pulseIn(echoPin, HIGH, 30000); // 30ms timeout
-  if (sure == 0) return 100; // Timeout durumunda güvenli bir değer döndür
+  long sure = pulseIn(echoPin, HIGH, 30000);
+  if (sure == 0) return 100;
   
-  long mesafe = sure * 0.034 / 2; // cm cinsinden mesafe
+  long mesafe = sure * 0.034 / 2;
   
-  // Ölçümün makul bir aralıkta olduğundan emin ol
-  if (mesafe > 400) mesafe = 400; // HC-SR04'ün maksimum ölçüm aralığı
-  if (mesafe <= 0) mesafe = 100;  // Hatalı ölçüm durumu
+  if (mesafe > 400) mesafe = 400;
+  if (mesafe <= 0) mesafe = 100;
   
   return mesafe;
 }
@@ -1253,22 +1061,18 @@ void durdur() {
   yon = 'S';
 }
 
-// DÜZELTİLDİ - Ters çalışan röle mantığı
 void vakumAc() {
-  // Röle ters mantıkla çalışıyor, LOW gönderdiğimizde açılıyor
   digitalWrite(VAKUM_ROLE, LOW);
   vakumDurumu = true;
   Serial.println("VAKUM:ACIK");
 }
 
 void vakumKapat() {
-  // Röle ters mantıkla çalışıyor, HIGH gönderdiğimizde kapanıyor
   digitalWrite(VAKUM_ROLE, HIGH);
   vakumDurumu = false;
   Serial.println("VAKUM:KAPALI");
 }
 
-// DFPlayer Mini için müzik kontrol fonksiyonları - BUSY pin olmadan da çalışacak
 void muzikCal() {
   dfPlayer.start();
   muzikCaliyor = true;
@@ -1338,20 +1142,15 @@ void sarkiSec(int track) {
 }
 
 void sensorleriOku() {
-  // DHT11 sıcaklık ve nem
   sicaklik = dht.readTemperature();
   nem = dht.readHumidity();
   
-  // MQ2 gaz sensörü
   gazSeviyesi = analogRead(MQ2_PIN);
   
-  // PIR sensörü
   hareketAlgilandi = digitalRead(PIR_PIN);
   
-  // Ses sensörü
   sesSeviyesi = analogRead(SES_SENSOR_PIN);
   
-  // Tüm mesafe sensörlerini oku
   onMesafe = mesafeOlc(ON_TRIG_PIN, ON_ECHO_PIN);
   ustMesafe = mesafeOlc(UST_TRIG_PIN, UST_ECHO_PIN);
   sagOnMesafe = mesafeOlc(SAG_ON_TRIG_PIN, SAG_ON_ECHO_PIN);
@@ -1359,23 +1158,19 @@ void sensorleriOku() {
   sagYanMesafe = mesafeOlc(SAG_YAN_TRIG_PIN, SAG_YAN_ECHO_PIN);
   solYanMesafe = mesafeOlc(SOL_YAN_TRIG_PIN, SOL_YAN_ECHO_PIN);
   
-  // BME280 verilerini okuma
   bmeSicaklik = bme.readTemperature();
   bmeNem = bme.readHumidity();
-  bmeBasinc = bme.readPressure() / 100.0F; // hPa cinsinden
+  bmeBasinc = bme.readPressure() / 100.0F;
 }
 
 void sensorVerileriniGonder() {
-  // JSON formatında sensör verilerini gönder - Yeni uyumlu format
   Serial.print("SENSOR_DATA:{");
   
-  // Mesafe sensörleri - Tüm sensörler
   Serial.print("\"on\":");
   Serial.print(onMesafe);
   Serial.print(",\"ust\":");
   Serial.print(ustMesafe);
   
-  // Çoklu sensör verilerini ekle
   Serial.print(",\"sagOn\":");
   Serial.print(sagOnMesafe);
   Serial.print(",\"solOn\":");
@@ -1385,7 +1180,6 @@ void sensorVerileriniGonder() {
   Serial.print(",\"solYan\":");
   Serial.print(solYanMesafe);
   
-  // Diğer sensörler
   Serial.print(",\"sicaklik\":");
   Serial.print(sicaklik);
   Serial.print(",\"nem\":");
@@ -1397,7 +1191,6 @@ void sensorVerileriniGonder() {
   Serial.print(",\"ses\":");
   Serial.print(sesSeviyesi);
   
-  // BME280 sensör verileri
   Serial.print(",\"bmeSicaklik\":");
   Serial.print(bmeSicaklik);
   Serial.print(",\"bmeNem\":");
@@ -1405,7 +1198,6 @@ void sensorVerileriniGonder() {
   Serial.print(",\"bmeBasinc\":");
   Serial.print(bmeBasinc);
   
-  // Durum bilgileri
   Serial.print(",\"vakum\":");
   Serial.print(vakumDurumu ? "true" : "false");
   Serial.print(",\"otomatik\":");
@@ -1419,11 +1211,9 @@ void sensorVerileriniGonder() {
   Serial.print(",\"tarama\":");
   Serial.print(taramaModu ? "true" : "false");
   
-  // Otonom mod bilgisi ekle
   Serial.print(",\"otonomMod\":");
   Serial.print(otonomMod);
   
-  // Zaman bilgileri
   Serial.print(",\"saat\":");
   Serial.print(hour());
   Serial.print(",\"dakika\":");
@@ -1437,24 +1227,20 @@ void sensorVerileriniGonder() {
   Serial.print(",\"yil\":");
   Serial.print(year());
   
-  // Zamanlayıcı bilgileri
   Serial.print(",\"planliTemizlik\":");
   Serial.print(zamanliTemizlikAktif ? "true" : "false");
   
-  // İstatistik bilgileri
   Serial.print(",\"toplamSureDk\":");
-  Serial.print(toplamCalismaSuresi / 60000); // Dakika cinsinden
+  Serial.print(toplamCalismaSuresi / 60000);
   Serial.print(",\"toplamMesafe\":");
   Serial.print(toplamGidilenMesafe);
   Serial.print(",\"otomatikGecis\":");
   Serial.print(otomatikModGecis);
   
-  // JSON sonlandır
   Serial.println("}");
 }
 
 void istatistikleriKaydet() {
-  // EEPROM'a istatistikleri kaydet
   EEPROM.put(EEPROM_ADRES_TOPLAM_SURE, toplamCalismaSuresi);
   EEPROM.put(EEPROM_ADRES_MESAFE, toplamGidilenMesafe);
   EEPROM.put(EEPROM_ADRES_GECIS, otomatikModGecis);
