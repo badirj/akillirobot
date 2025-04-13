@@ -4,17 +4,12 @@
 #include "ESPAsyncWebServer.h"
 #include "AsyncTCP.h"
 #include "time.h"
-
-// WiFi Bilgileri
 const char* ssid = "Badirinphone";
 const char* password = "Badir8186";
 
-// NTP Sunucu Bilgileri
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 10800; // Türkiye için UTC+3 (saniye cinsinden): 3*60*60
+const long gmtOffset_sec = 10800; 
 const int daylightOffset_sec = 0;
-
-// Kamera pinleri - ESP32-CAM AI-THINKER
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -32,64 +27,44 @@ const int daylightOffset_sec = 0;
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// Global değişkenler
 bool otomatikMod = false;
 bool manuelMod = false;
 bool vakumDurumu = false;
 bool muzikCaliyor = false;
 int currentTrack = 1;
-
-// Mesafe sensör değerleri - Artık tüm sensörler eklendi
 int onMesafe = 0;
 int ustMesafe = 0;
 int sagOnMesafe = 0;
 int solOnMesafe = 0;
 int sagYanMesafe = 0;
 int solYanMesafe = 0;
-
-// YENİ - Otonom mod seçimi değişkeni
-int otonomMod = 1; // 1: Çoklu sensör modu, 2: Üst-Ön sensör modu
-
+int otonomMod = 1; 
 float sicaklik = 0;
 float nem = 0;
 int gazSeviyesi = 0;
 bool hareketAlgilandi = false;
 int sesSeviyesi = 0;
 int motorHizi = 200;
-
-// İstatistik değerleri
-int toplamCalismaSuresi = 0; // dakika cinsinden
-float toplamGidilenMesafe = 0.0; // metre cinsinden
+int toplamCalismaSuresi = 0; 
+float toplamGidilenMesafe = 0.0; 
 int otomatikModGecis = 0;
-
-// Temizlik planlama değişkenleri
 bool planliTemizlikAktif = false;
 int planliSaat = 0;
 int planliDakika = 0;
-int planliSure = 30; // dakika cinsinden
+int planliSure = 30; 
 
-// Hareketsizlik tespit değişkenleri
 bool robotHareketEdiyor = false;
 unsigned long sonHareketZamani = 0;
-
-// Zaman senkronizasyonu değişkenleri
 unsigned long sonZamanGondermeZamani = 0;
-const unsigned long ZAMAN_GONDER_ARALIK = 43200000; // 12 saat (milisaniye)
-
-// Debug değişkenleri
+const unsigned long ZAMAN_GONDER_ARALIK = 43200000; 
 unsigned long sonDebugGondermeZamani = 0;
-const unsigned long DEBUG_GONDER_ARALIK = 10000; // 10 saniye (milisaniye)
-
-// Şarkı listesi
+const unsigned long DEBUG_GONDER_ARALIK = 10000; 
 const int SONG_COUNT = 5;
 String songNames[SONG_COUNT] = {
   "1. Sarki Adi", "2. Sarki Adi", "3. Sarki Adi", "4. Sarki Adi", "5. Sarki Adi"
 };
-
-// Asenkron Web Sunucusu
 AsyncWebServer server(80);
 
-// HTML sayfası - açıklama ve kodda okunurluk için daha kısa tutuldu
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="tr">
@@ -1541,7 +1516,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// MJPEG Streaming Handler için
+// MJPEG stream handlet s için
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char* STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
@@ -1555,11 +1530,9 @@ void parseSensorData(String data) {
   if (startPos >= 0 && endPos > startPos) {
     String jsonStr = data.substring(startPos, endPos + 1);
     
-    // Debug amaçlı yazdır
     Serial.print("Ayrıştırılan JSON: ");
     Serial.println(jsonStr);
     
-    // Ana ön mesafe sensörü
     int onPos = jsonStr.indexOf("\"on\":");
     if (onPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', onPos);
@@ -1568,7 +1541,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Üst mesafe sensörü
     int ustPos = jsonStr.indexOf("\"ust\":");
     if (ustPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', ustPos);
@@ -1577,7 +1549,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Sağ ön mesafe sensörü
     int sagOnPos = jsonStr.indexOf("\"sagOn\":");
     if (sagOnPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', sagOnPos);
@@ -1586,7 +1557,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Sol ön mesafe sensörü
     int solOnPos = jsonStr.indexOf("\"solOn\":");
     if (solOnPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', solOnPos);
@@ -1595,7 +1565,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Sağ yan mesafe sensörü
     int sagYanPos = jsonStr.indexOf("\"sagYan\":");
     if (sagYanPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', sagYanPos);
@@ -1604,7 +1573,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Sol yan mesafe sensörü
     int solYanPos = jsonStr.indexOf("\"solYan\":");
     if (solYanPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', solYanPos);
@@ -1612,8 +1580,6 @@ void parseSensorData(String data) {
         solYanMesafe = jsonStr.substring(solYanPos + 9, kommaPos).toInt();
       }
     }
-    
-    // Otonom mod bilgisi
     int otonomModPos = jsonStr.indexOf("\"otonomMod\":");
     if (otonomModPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', otonomModPos);
@@ -1624,7 +1590,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Diğer sensör değerleri
     int sicaklikPos = jsonStr.indexOf("\"sicaklik\":");
     if (sicaklikPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', sicaklikPos);
@@ -1664,8 +1629,6 @@ void parseSensorData(String data) {
         sesSeviyesi = jsonStr.substring(sesPos + 6, kommaPos).toInt();
       }
     }
-    
-    // Durum değerleri
     int vakumPos = jsonStr.indexOf("\"vakum\":");
     if (vakumPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', vakumPos);
@@ -1677,7 +1640,6 @@ void parseSensorData(String data) {
       }
       vakumDurumu = (vakumStr == "true");
     }
-    
         int otomatikPos = jsonStr.indexOf("\"otomatik\":");
     if (otomatikPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', otomatikPos);
@@ -1724,7 +1686,6 @@ void parseSensorData(String data) {
       }
     }
     
-    // Planlı temizlik durumu
     int planPos = jsonStr.indexOf("\"planliTemizlik\":");
     if (planPos >= 0) {
       int kommaPos = jsonStr.indexOf(',', planPos);
@@ -1737,7 +1698,6 @@ void parseSensorData(String data) {
       planliTemizlikAktif = (planStr == "true");
     }
     
-    // İstatistik değerleri
     int toplamSurePos = jsonStr.indexOf("\"toplamSureDk\":");
     if (toplamSurePos >= 0) {
       int kommaPos = jsonStr.indexOf(',', toplamSurePos);
@@ -1768,45 +1728,32 @@ void parseSensorData(String data) {
       }
     }
     
-    // Robot hareket durumu kontrolü (yeni)
     robotHareketEdiyor = !(otomatikMod && millis() - sonHareketZamani > 3000);
   }
 }
 
-// Durum verilerini JSON formatında döndüren fonksiyon
 String getStatusJson() {
   String json = "{";
   
-  // Mod durumları
   json += "\"otomatik\":" + String(otomatikMod ? "true" : "false") + ",";
   json += "\"manuel\":" + String(manuelMod ? "true" : "false") + ",";
   json += "\"vakum\":" + String(vakumDurumu ? "true" : "false") + ",";
   json += "\"planliTemizlik\":" + String(planliTemizlikAktif ? "true" : "false") + ",";
   json += "\"hareketEdiyor\":" + String(robotHareketEdiyor ? "true" : "false") + ",";
-  
-  // YENİ - Otonom mod bilgisi ekle
   json += "\"otonomMod\":" + String(otonomMod) + ",";
-  
-  // Mesafe sensörleri
   json += "\"sagOn\":" + String(sagOnMesafe) + ",";
   json += "\"solOn\":" + String(solOnMesafe) + ",";
   json += "\"sagYan\":" + String(sagYanMesafe) + ",";
   json += "\"solYan\":" + String(solYanMesafe) + ",";
   json += "\"ust\":" + String(ustMesafe) + ",";
-  
-  // Diğer sensörler
   json += "\"sicaklik\":" + String(sicaklik) + ",";
   json += "\"nem\":" + String(nem) + ",";
   json += "\"gaz\":" + String(gazSeviyesi) + ",";
   json += "\"hareket\":" + String(hareketAlgilandi ? "true" : "false") + ",";
   json += "\"ses\":" + String(sesSeviyesi) + ",";
   json += "\"hiz\":" + String(motorHizi) + ",";
-  
-  // Müzik durumu
   json += "\"muzik\":" + String(muzikCaliyor ? "true" : "false") + ",";
   json += "\"track\":" + String(currentTrack) + ",";
-  
-  // İstatistikler
   json += "\"toplamSureDk\":" + String(toplamCalismaSuresi) + ",";
   json += "\"toplamMesafe\":" + String(toplamGidilenMesafe) + ",";
   json += "\"otomatikGecis\":" + String(otomatikModGecis);
@@ -1816,8 +1763,7 @@ String getStatusJson() {
   return json;
 }
 
-// Kamera yayını için gerekli handler
-void streamHandler(AsyncWebServerRequest *request) {
+void streamHandler(AsyncWebServerRequest *request) { //boundary
   AsyncWebServerResponse *response = request->beginChunkedResponse(STREAM_CONTENT_TYPE, [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
     static size_t last_frame_size = 0;
     static uint8_t *last_frame_buffer = nullptr;
@@ -1828,10 +1774,8 @@ void streamHandler(AsyncWebServerRequest *request) {
       last_frame_buffer = nullptr;
       last_frame_size = 0;
       
-      // MJPEG stream başlığını yaz
       const char *boundary = STREAM_BOUNDARY;
       size_t boundary_len = strlen(boundary);
-      
       if (boundary_len > maxLen) return 0;
       memcpy(buffer, boundary, boundary_len);
       is_streaming = true;
@@ -1844,7 +1788,6 @@ void streamHandler(AsyncWebServerRequest *request) {
       return 0;
     }
     
-    // Önce frame header bilgisini yaz
     static char part_buf[128];
     size_t part_len = snprintf(part_buf, sizeof(part_buf), STREAM_PART, fb->len);
     
@@ -1859,7 +1802,6 @@ void streamHandler(AsyncWebServerRequest *request) {
     
     esp_camera_fb_return(fb);
     
-    // Sonraki frame için stream başlığını sıfırla
     is_streaming = false;
     
     return part_len + fb->len;
@@ -1870,12 +1812,10 @@ void streamHandler(AsyncWebServerRequest *request) {
 }
 
 void setup() {
-  // Seri port başlatma
   Serial.begin(115200);
   delay(1000);
   Serial.println("Başlatılıyor...");
   
-  // Kamera yapılandırması
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -1898,7 +1838,6 @@ void setup() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   
-  // PSRAM varsa yüksek kalite, yoksa düşük kalite
   if(psramFound()){
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 12;
@@ -1908,16 +1847,12 @@ void setup() {
     config.jpeg_quality = 16;
     config.fb_count = 1;
   }
-  
-  // Kamerayı başlat
-  esp_err_t err = esp_camera_init(&config);
+    esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     Serial.printf("Kamera başlatılamadı, hata: 0x%x", err);
     delay(1000);
     ESP.restart();
   }
-  
-  // Kamera parametrelerini ayarla
   sensor_t *s = esp_camera_sensor_get();
   if (s) {
     s->set_framesize(s, FRAMESIZE_QVGA);
@@ -1929,7 +1864,6 @@ void setup() {
     s->set_vflip(s, 0);   // Dikey çevirme
   }
   
-  // WiFi bağlantısı
   WiFi.begin(ssid, password);
   Serial.print("WiFi bağlanıyor");
   
@@ -1943,28 +1877,23 @@ void setup() {
   Serial.print("WiFi Bağlandı - IP Adresi: ");
   Serial.println(WiFi.localIP());
   
-  // NTP sunucusuna bağlan ve zamanı senkronize et
+  // ntpye bağlanmac
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  
-  // Web sunucu route tanımlamaları
-  
-  // Ana sayfa
+    
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html);
   });
   
-  // Durum bilgisi API'si
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "application/json", getStatusJson());
   });
   
-  // Kontrol API'si
   server.on("/control", HTTP_GET, [](AsyncWebServerRequest *request) {
     String cmd;
     if (request->hasParam("cmd")) {
       cmd = request->getParam("cmd")->value();
       Serial.print("Gelen komut: ");
-      Serial.println(cmd);  // Debug için komut yazdırma
+      Serial.println(cmd);  
       
       if (cmd == "otomatik_ac") {
         otomatikMod = true;
@@ -2072,42 +2001,30 @@ void setup() {
     request->send(200, "application/json", "{\"success\":true,\"command\":\""+cmd+"\"}");
   });
   
-  // Kamera yayın API'si
   server.on("/stream", HTTP_GET, streamHandler);
-  
-  // Sunucuyu başlat
   server.begin();
-  
   Serial.println("HTTP Sunucusu başlatıldı");
-  
-  // Debug mesajı
   Serial.println("ESP32 CAM hazır, sensör verilerini dinliyor...");
 }
 
 void loop() {
-  // Arduino Mega'dan gelen verileri oku
   if (Serial.available()) {
     String veri = Serial.readStringUntil('\n');
     veri.trim();
-    
-    // Sensor verilerini işle
-    if (veri.startsWith("SENSOR_DATA:")) {
+        if (veri.startsWith("SENSOR_DATA:")) {
       parseSensorData(veri);
       
-      // Hareket durumu kontrolü - Arduino'dan gelen veriden
       if (otomatikMod) {
-        // Eğer otomatik moddaysa ve hareket durumu değişirse, hareket zaman damgasını güncelle
         if (robotHareketEdiyor) {
           sonHareketZamani = millis();
         }
       }
     }
-    // Mod değişikliklerini algıla
     else if (veri == "Otomatik mod acildi") {
       otomatikMod = true;
       manuelMod = false;
-      sonHareketZamani = millis(); // Hareket zamanlayıcısını sıfırla
-      robotHareketEdiyor = true;   // Başlangıçta hareket ediyor varsay
+      sonHareketZamani = millis(); 
+      robotHareketEdiyor = true;   
     }
     else if (veri == "Otomatik mod kapatildi") {
       otomatikMod = false;
@@ -2147,31 +2064,26 @@ void loop() {
     else if (veri == "PLANLI_TEMIZLIK_BASLADI") {
       otomatikMod = true;
       manuelMod = false;
-      sonHareketZamani = millis(); // Hareket zamanlayıcısını sıfırla
+      sonHareketZamani = millis(); 
       robotHareketEdiyor = true;
     }
     else if (veri == "PLANLI_TEMIZLIK_TAMAMLANDI") {
       otomatikMod = false;
       robotHareketEdiyor = false;
     }
-    // Tarama modu durumunu algıla
     else if (veri.startsWith("Tarama modu başlatılıyor")) {
       Serial.println("Web: Tarama modu algılandı");
     }
-    // YENİ - Otonom mod değişikliğini algıla
     else if (veri == "Otonom Mod 1 seçildi (Çoklu Sensör)") {
       otonomMod = 1;
     }
     else if (veri == "Otonom Mod 2 seçildi (Üst-Ön Sensör)") {
       otonomMod = 2;
     }
-    
-    // Debug için alınan veriyi yazdır
     Serial.print("Mega'dan alınan: ");
     Serial.println(veri);
   }
   
-  // 3 saniye hareketsizlik kontrolü - otomatik modda
   if (otomatikMod && robotHareketEdiyor) {
     if (millis() - sonHareketZamani > 3000) { // 3 saniye
       robotHareketEdiyor = false;
@@ -2179,12 +2091,10 @@ void loop() {
     }
   }
   
-  // WiFi bağlantı kontrolü
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi bağlantısı koptu, yeniden bağlanılıyor...");
     WiFi.reconnect();
     
-    // Yeniden bağlanma için bekle
     unsigned long startTime = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
       delay(500);
@@ -2199,7 +2109,7 @@ void loop() {
     }
   }
   
-  // NTP ile zamanı düzenli olarak güncelle (her 24 saatte bir)
+  // ntp loop yine
   static unsigned long lastTimeSync = 0;
   if (millis() - lastTimeSync > 86400000) { // 24 saat
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -2222,7 +2132,6 @@ void loop() {
     }
   }
   
-  // Debug mesajları
   if (millis() - sonDebugGondermeZamani > DEBUG_GONDER_ARALIK) {
     Serial.println("\n--- DEBUG BILGISI ---");
     Serial.print("Ön Mesafe: ");
